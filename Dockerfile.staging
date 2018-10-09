@@ -5,4 +5,4 @@ COPY package.json /usr/src/app/
 RUN npm install
 COPY . /usr/src/app
 EXPOSE 3080
-ENTRYPOINT ["bin/bitgo-express", "-e", "test"]
+CMD ["bin/bitgo-express", "-e", "test", "-b", "0.0.0.0"]
