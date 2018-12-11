@@ -17,6 +17,9 @@ Keychains.prototype.get = function(params, callback) {
   }
 
   const id = params.id;
+  if (params.reqId) {
+    this.bitgo._reqId = params.reqId;
+  }
   return this.bitgo.get(this.baseCoin.url('/key/' + encodeURIComponent(id)))
   .result()
   .nodeify(callback);
@@ -107,6 +110,15 @@ Keychains.prototype.add = function(params, callback) {
   params = params || {};
   common.validateParams(params, [], ['pub', 'encryptedPrv', 'type', 'source', 'originalPasscodeEncryptionCode', 'enterprise', 'derivedFromParentWithSeed'], callback);
 
+  if (!_.isUndefined(params.disableKRSEmail)) {
+    if (!_.isBoolean(params.disableKRSEmail)) {
+      throw new Error('invalid disableKRSEmail argument, expecting boolean');
+    }
+  }
+
+  if (params.reqId) {
+    this.bitgo._reqId = params.reqId;
+  }
   return this.bitgo.post(this.baseCoin.url('/key'))
   .send({
     pub: params.pub,
@@ -116,7 +128,9 @@ Keychains.prototype.add = function(params, callback) {
     provider: params.provider,
     originalPasscodeEncryptionCode: params.originalPasscodeEncryptionCode,
     enterprise: params.enterprise,
-    derivedFromParentWithSeed: params.derivedFromParentWithSeed
+    derivedFromParentWithSeed: params.derivedFromParentWithSeed,
+    disableKRSEmail: params.disableKRSEmail,
+    krsSpecific: params.krsSpecific
   })
   .result()
   .nodeify(callback);

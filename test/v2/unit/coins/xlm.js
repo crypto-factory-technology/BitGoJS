@@ -81,6 +81,23 @@ describe('XLM:', function() {
     assert.throws(() => { basecoin.verifyAddress({ address: 'r2udSsspYjWSoUZxzxLzV6RxGcbygngJ8' }); });
   });
 
+  it('Should be able to explain an XLM transaction', function() {
+    const signedExplanation = basecoin.explainTransaction({ txBase64: 'AAAAAMDHAbd3O7B2auR1e+EH/LRKe8IcQBOF+XP2lOxWi1PfAAAB9AAEvJEAAAABAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAABAAAAB1RFU1RJTkcAAAAAAQAAAAAAAAABAAAAALgEl4p84728zfXtl/JdOsx3QbI97mcybqcXdfgdv54zAAAAAAAAAAEqBfIAAAAAAAAAAAFWi1PfAAAAQDoqo7juOBZawMlk8znIbYqSKemjgmINosp/P4+0SFGo/xJy1YgD6YEc65aWuyBxucFFBXCSlAxP2Z7nPMyjewM=' });
+    signedExplanation.outputAmount.should.equal('5000000000');
+    signedExplanation.fee.fee.should.equal('500');
+    signedExplanation.memo.value.should.equal('TESTING');
+    signedExplanation.memo.type.should.equal('text');
+    signedExplanation.changeOutputs.length.should.equal(0);
+    signedExplanation.changeAmount.should.equal('0');
+    const unsignedExplanation = basecoin.explainTransaction({ txBase64: 'AAAAAMDHAbd3O7B2auR1e+EH/LRKe8IcQBOF+XP2lOxWi1PfAAAAZAAEvJEAAAACAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAEAAAABAAAAAAAAAAEAAAAAuASXinzjvbzN9e2X8l06zHdBsj3uZzJupxd1+B2/njMAAAAAAAAAAlQL5AAAAAAAAAAAAA==' });
+    unsignedExplanation.outputAmount.should.equal('10000000000');
+    unsignedExplanation.fee.fee.should.equal('100');
+    unsignedExplanation.memo.value.should.equal('1');
+    unsignedExplanation.memo.type.should.equal('id');
+    unsignedExplanation.changeOutputs.length.should.equal(0);
+    unsignedExplanation.changeAmount.should.equal('0');
+  });
+
   it('isValidMemoId should work', function() {
     basecoin.isValidMemo({ value: '1', type: 'id' }).should.equal(true);
     basecoin.isValidMemo({ value: 'uno', type: 'text' }).should.equal(true);
@@ -91,6 +108,24 @@ describe('XLM:', function() {
     basecoin.isValidMemo({ value: 1, type: 'text' }).should.equal(false);
     basecoin.isValidMemo({ value: '1', type: 'hash' }).should.equal(false);
     basecoin.isValidMemo({ value: '1', type: 'return' }).should.equal(false);
+  });
+
+  it('should supplement wallet generation', co(function *() {
+    const walletParams = yield basecoin.supplementGenerateWallet({});
+    walletParams.should.have.property('rootPrivateKey');
+    basecoin.isValidPrv(walletParams.rootPrivateKey).should.equal(true);
+  }));
+
+  it('should supplement wallet generation with provided private key', co(function *() {
+    const rootPrivateKey = basecoin.generateKeyPair().prv;
+    const walletParams = yield basecoin.supplementGenerateWallet({ rootPrivateKey });
+    walletParams.should.have.property('rootPrivateKey');
+    walletParams.rootPrivateKey.should.equal(rootPrivateKey);
+  }));
+
+  it('should validate pub key', () => {
+    const { pub } = basecoin.keychains().create();
+    basecoin.isValidPub(pub).should.equal(true);
   });
 
   describe('Transaction Verification', function() {
@@ -294,6 +329,59 @@ describe('XLM:', function() {
         yield basecoin.verifyTransaction({ txParams, txPrebuild, wallet, verification });
       } catch (e) {
         e.message.should.equal('transaction prebuild does not match expected amount');
+      }
+    }));
+
+    it('should fail to verify a transaction without recipients', co(function *() {
+
+      const prebuilt = {
+        txBase64: 'AAAAAP1qe44j+i4uIT+arbD4QDQBt8ryEeJd7a0jskQ3nwDeAAAAAAB/4cUAAAACAAAAAAAAAAIAAAAAAAAAAQAAAAAAAAAAAAAAAA==',
+        txInfo: {
+          fee: 0,
+          sequence: '35995558267060226',
+          source: 'GD6WU64OEP5C4LRBH6NK3MHYIA2ADN6K6II6EXPNVUR3ERBXT4AN4ACD',
+          operations: [],
+          signatures: []
+        },
+        feeInfo: {
+          height: 123456,
+          xlmBaseFee: '100',
+          xlmBaseReserve: '5000000'
+        },
+        walletId: '5a78dd561c6258a907f1eeaee132f796'
+      };
+
+      const keyPair = {
+        pub: 'GAA4LVBE2HEKECNWDRT2NLTSBWFIZRGTEQFC7BLOREMMPNDHFRUGP3VZ',
+        prv: 'SCIVSTUJX7SYJZHKMJI4YF7YWA27FU7XN5EH4OWBFL2Y2KTYI7IP2DFZ'
+      };
+
+      // sign transaction
+      const tx = yield wallet.signTransaction({
+        txPrebuild: prebuilt,
+        prv: keyPair.prv
+      });
+
+      const txParams = {
+        recipients: [{
+          address: 'GAUKA3ZTH3DZ6THBCPL6AOQBCEEBIFYDU4FGXUCHOC7PILXGUPTUBJ6E',
+          amount: '130000000'
+        }]
+      };
+      const txPrebuild = {
+        txBase64: tx.halfSigned.txBase64
+      };
+      const verification = {
+        disableNetworking: true,
+        keychains: {
+          user: { pub: userKeychain.pub },
+          backup: { pub: backupKeychain.pub }
+        }
+      };
+      try {
+        yield basecoin.verifyTransaction({ txParams, txPrebuild, wallet, verification });
+      } catch (e) {
+        e.message.should.equal('transaction prebuild does not have any operations');
       }
     }));
 

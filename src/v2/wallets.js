@@ -5,6 +5,7 @@ const Promise = require('bluebird');
 const co = Promise.coroutine;
 const _ = require('lodash');
 const RmgCoin = require('./coins/rmg');
+const util = require('../util');
 
 const Wallets = function(bitgo, baseCoin) {
   this.bitgo = bitgo;
@@ -92,11 +93,18 @@ Wallets.prototype.list = function(params, callback) {
 */
 Wallets.prototype.add = function(params, callback) {
   params = params || {};
-  common.validateParams(params, [], ['label', 'enterprise'], callback);
+  common.validateParams(params, [], ['label', 'enterprise', 'type'], callback);
 
-  if (Array.isArray(params.keys) === false || !_.isNumber(params.m) ||
-    !_.isNumber(params.n)) {
-    throw new Error('invalid argument');
+  // no need to pass keys for (single) custodial wallets
+  if (params.type !== 'custodial') {
+    if (Array.isArray(params.keys) === false || !_.isNumber(params.m) || !_.isNumber(params.n)) {
+      throw new Error('invalid argument');
+    }
+
+    // TODO: support more types of multisig
+    if (!this.baseCoin.isValidMofNSetup(params)) {
+      throw new Error('unsupported multi-sig type');
+    }
   }
 
   if (params.tags && Array.isArray(params.tags) === false) {
@@ -115,13 +123,8 @@ Wallets.prototype.add = function(params, callback) {
     throw new Error('invalid argument for isCustodial - boolean expected');
   }
 
-  // TODO: support more types of multisig
-  if (params.m !== 2 || params.n !== 3) {
-    throw new Error('unsupported multi-sig type');
-  }
-
   const self = this;
-  const walletParams = _.pick(params, ['label', 'm', 'n', 'keys', 'enterprise', 'isCold', 'isCustodial', 'tags', 'clientFlags']);
+  const walletParams = _.pick(params, ['label', 'm', 'n', 'keys', 'enterprise', 'isCold', 'isCustodial', 'tags', 'clientFlags', 'type']);
 
   // Additional params needed for xrp
   if (params.rootPub) {
@@ -163,33 +166,76 @@ Wallets.prototype.add = function(params, callback) {
  * @param params.passcodeEncryptionCode
  * @param params.coldDerivationSeed
  * @param params.gasPrice
+ * @param params.disableKRSEmail
  * @param callback
  * @returns {*}
  */
 Wallets.prototype.generateWallet = function(params, callback) {
   return co(function *() {
     params = params || {};
-    common.validateParams(params, ['label'], ['passphrase', 'userKey', 'backupXpub', 'enterprise', 'passcodeEncryptionCode'], callback);
+    common.validateParams(params, ['label'], ['passphrase', 'userKey', 'backupXpub'], callback);
     const self = this;
     const label = params.label;
+
+    let walletParams = {
+      label: label,
+      m: 2,
+      n: 3
+    };
 
     if ((!!params.backupXpub + !!params.backupXpubProvider) > 1) {
       throw new Error('Cannot provide more than one backupXpub or backupXpubProvider flag');
     }
 
-    if (params.disableTransactionNotifications !== undefined && !_.isBoolean(params.disableTransactionNotifications)) {
-      throw new Error('Expected disableTransactionNotifications to be a boolean. ');
+    if (!_.isUndefined(params.passcodeEncryptionCode)) {
+      if (!_.isString(params.passcodeEncryptionCode)) {
+        throw new Error('passcodeEncryptionCode must be a string');
+      }
     }
 
-    if (params.passcodeEncryptionCode && !_.isString(params.passcodeEncryptionCode)) {
-      throw new Error('passcodeEncryptionCode must be a string');
+    if (!_.isUndefined(params.enterprise)) {
+      if (!_.isString(params.enterprise)) {
+        throw new Error('invalid enterprise argument, expecting string');
+      }
+      walletParams.enterprise = params.enterprise;
     }
 
-    let derivationPath;
+    if (!_.isUndefined(params.disableTransactionNotifications)) {
+      if (!_.isBoolean(params.disableTransactionNotifications)) {
+        throw new Error('invalid disableTransactionNotifications argument, expecting boolean');
+      }
+      walletParams.disableTransactionNotifications = params.disableTransactionNotifications;
+    }
+
+    if (!_.isUndefined(params.gasPrice)) {
+      if (!_.isNumber(params.gasPrice)) {
+        throw new Error('invalid gas price argument, expecting number');
+      }
+      walletParams.gasPrice = params.gasPrice;
+    }
+
+    if (!_.isUndefined(params.disableKRSEmail)) {
+      if (!_.isBoolean(params.disableKRSEmail)) {
+        throw new Error('invalid disableKRSEmail argument, expecting boolean');
+      }
+    }
+
+    // Ensure each krsSpecific param is either a string, boolean, or number
+    if (!_.isUndefined(params.krsSpecific)) {
+      Object.keys(params.krsSpecific).forEach(key => {
+        const val = params.krsSpecific[key];
+        if (!_.isBoolean(val) && !_.isString(val) && !_.isNumber(val)) {
+          throw new Error('krsSpecific object contains illegal values. values must be strings, booleans, or numbers');
+        }
+      });
+    }
+
+    let derivationPath = undefined;
 
     const passphrase = params.passphrase;
     const canEncrypt = (!!passphrase && typeof passphrase === 'string');
     const isCold = (!canEncrypt || !!params.userKey);
+    const reqId = util.createRequestId();
 
     // Add the user keychain
     const userKeychainPromise = co(function *() {
@@ -219,6 +265,7 @@ Wallets.prototype.generateWallet = function(params, callback) {
         };
       }
 
+      userKeychainParams.reqId = reqId;
       const newUserKeychain = yield self.baseCoin.keychains().add(userKeychainParams);
       return _.extend({}, newUserKeychain, userKeychain);
     })();
@@ -229,69 +276,44 @@ Wallets.prototype.generateWallet = function(params, callback) {
         return self.baseCoin.keychains().createBackup({
           provider: params.backupXpubProvider || 'defaultRMGBackupProvider',
           disableKRSEmail: params.disableKRSEmail,
-          type: self.baseCoin.getChain()
+          krsSpecific: params.krsSpecific,
+          type: self.baseCoin.getChain(),
+          reqId
         });
       }
 
       // User provided backup xpub
       if (params.backupXpub) {
         // user provided backup ethereum address
-        return self.baseCoin.keychains().add({ pub: params.backupXpub, source: 'backup' });
+        return self.baseCoin.keychains().add({ pub: params.backupXpub, source: 'backup', reqId });
       } else {
         if (!canEncrypt) {
           throw new Error('cannot generate backup keypair without passphrase');
         }
         // No provided backup xpub or address, so default to creating one here
-        return self.baseCoin.keychains().createBackup();
+        return self.baseCoin.keychains().createBackup({ reqId });
       }
     });
 
     const { userKeychain, backupKeychain, bitgoKeychain } = yield Promise.props({
       userKeychain: userKeychainPromise,
       backupKeychain: backupKeychainPromise,
-      bitgoKeychain: self.baseCoin.keychains().createBitGo({ enterprise: params.enterprise })
+      bitgoKeychain: self.baseCoin.keychains().createBitGo({ enterprise: params.enterprise, reqId })
     });
 
-    // Add the user keychain
-    let walletParams = {
-      label: label,
-      m: 2,
-      n: 3,
-      keys: [
-        userKeychain.id,
-        backupKeychain.id,
-        bitgoKeychain.id
-      ],
-      isCold: isCold
-    };
+    walletParams.keys = [
+      userKeychain.id,
+      backupKeychain.id,
+      bitgoKeychain.id
+    ];
 
-    // add signatures
+    walletParams.isCold = isCold;
+
     if (_.isString(userKeychain.prv)) {
       walletParams.keySignatures = {
         backup: self.baseCoin.signMessage(userKeychain, backupKeychain.pub).toString('hex'),
         bitgo: self.baseCoin.signMessage(userKeychain, bitgoKeychain.pub).toString('hex')
       };
-    }
-
-    if (!_.isUndefined(params.enterprise)) {
-      if (!_.isString(params.enterprise)) {
-        throw new Error('invalid enterprise argument, expecting string');
-      }
-      walletParams.enterprise = params.enterprise;
-    }
-
-    if (!_.isUndefined(params.disableTransactionNotifications)) {
-      if (!_.isBoolean(params.disableTransactionNotifications)) {
-        throw new Error('invalid disableTransactionNotifications argument, expecting boolean');
-      }
-      walletParams.disableTransactionNotifications = params.disableTransactionNotifications;
-    }
-
-    if (!_.isUndefined(params.gasPrice)) {
-      if (!_.isNumber(params.gasPrice)) {
-        throw new Error('invalid gas price argument, expecting number');
-      }
-      walletParams.gasPrice = params.gasPrice;
     }
 
     if (_.includes(['xrp', 'xlm'], self.baseCoin.getFamily()) && !_.isUndefined(params.rootPrivateKey)) {
@@ -304,6 +326,7 @@ Wallets.prototype.generateWallet = function(params, callback) {
       bitgoKeychain
     };
     walletParams = yield self.baseCoin.supplementGenerateWallet(walletParams, keychains);
+    self.bitgo._reqId = reqId;
     const newWallet = yield self.bitgo.post(self.baseCoin.url('/wallet')).send(walletParams).result();
     const result = {
       wallet: new self.coinWallet(self.bitgo, self.baseCoin, newWallet),

@@ -76,6 +76,21 @@ class Eth extends BaseCoin {
   }
 
   /**
+   * Return boolean indicating whether input is valid public key for the coin.
+   *
+   * @param {String} pub the pub to be checked
+   * @returns {Boolean} is it valid?
+   */
+  isValidPub(pub) {
+    try {
+      prova.HDNode.fromBase58(pub);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Default gas price from platform
    * @returns {BigNumber}
    */
@@ -255,6 +270,13 @@ class Eth extends BaseCoin {
         throw new Error(`prv must be a string, got type ${typeof userPrv}`);
       }
       throw new Error('missing prv parameter to sign transaction');
+    }
+
+    params.recipients = params.recipients || txPrebuild.recipients;
+
+    // if no recipients in either params or txPrebuild, then throw an error
+    if (!params.recipients || !Array.isArray(params.recipients)) {
+      throw new Error('recipients missing or not array');
     }
 
     const secondsSinceEpoch = Math.floor((new Date().getTime()) / 1000);

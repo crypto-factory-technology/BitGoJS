@@ -1,6 +1,6 @@
 {
   "name": "bitgo",
-  "version": "4.38.0",
+  "version": "4.42.0",
   "description": "BitGo Javascript SDK",
   "main": "./src/index.js",
   "keywords": [
@@ -15,54 +15,6 @@
   "engines": {
     "node": ">=6.9.0",
     "npm": ">=5.5.1"
-  },
-  "devDependencies": {
-    "babel-core": "^6.26.0",
-    "babel-loader": "^7.1.2",
-    "babel-preset-env": "^1.6.1",
-    "browserify": "~16.1.1",
-    "bufferutil": "~3.0.5",
-    "eslint": "^4.17.0",
-    "glob": "^7.1.2",
-    "html-webpack-plugin": "^2.30.1",
-    "karma": "^3.0.0",
-    "karma-chrome-launcher": "~0.1.7",
-    "karma-mocha": "~0.1.10",
-    "mocha": "^4.0.1",
-    "mocha-junit-reporter": "~1.17.0",
-    "mocha-lcov-reporter": "0.0.2",
-    "nock": "~9.0.13",
-    "nyc": "^13.0.1",
-    "q": "1.1.2",
-    "request": "~2.85.0",
-    "request-promise": "~4.2.2",
-    "should": "11.2.x",
-    "should-http": "^0.1.1",
-    "should-sinon": "^0.0.6",
-    "sinon": "^6.1.6",
-    "sjcl": "~1.0.7",
-    "supertest": "~3.0.0",
-    "supertest-as-promised": "https://github.com/BitGo/supertest-as-promised/archive/a7f4b612b9fa090ae33a9616c41862aec2b25c7e.tar.gz",
-    "uglify-js": "3.0.15",
-    "uglifyjs-webpack-plugin": "^1.0.1",
-    "utf-8-validate": "~4.0.2",
-    "webpack": "^3.8.1"
-  },
-  "testling": {
-    "browsers": [
-      "chrome/latest",
-      "firefox/latest",
-      "safari/latest",
-      "opera/latest",
-      "iphone/latest",
-      "ipad/latest",
-      "android-browser/4.2..latest"
-    ],
-    "harness": "mocha",
-    "files": [
-      "test/*.js",
-      "test/bitcoin/*.js"
-    ]
   },
   "scripts": {
     "coverage": "./node_modules/.bin/nyc report --reporter=text-lcov > coverage.lcov && codecov",
@@ -86,7 +38,7 @@
     "bigi": "1.4.0",
     "bignumber.js": "~4.0.2",
     "bitcoinjs-message": "~2.0.0",
-    "bitgo-utxo-lib": "git+https://github.com/BitGo/bitgo-utxo-lib.git#648a6cf9bf7dc883803fc962cccee641baac7f49",
+    "bitgo-utxo-lib": "^1.2.1",
     "bluebird": "~3.5.0",
     "body-parser": "~1.18.2",
     "bs58": "2.0.1",
@@ -101,7 +53,7 @@
     "lodash": "~4.17.10",
     "minimist": "0.2.0",
     "moment": "~2.20.1",
-    "morgan": "1.9.0",
+    "morgan": "^1.9.1",
     "prova-lib": "0.2.9",
     "ripple-lib": "~0.22.0",
     "sanitize-html": "1.13.0",
@@ -110,10 +62,58 @@
     "superagent": "~3.8.3",
     "superagent-proxy": "~1.0.0"
   },
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-preset-env": "^1.6.1",
+    "browserify": "^16.2.3",
+    "bufferutil": "~3.0.5",
+    "eslint": "^4.17.0",
+    "glob": "^7.1.2",
+    "html-webpack-plugin": "^2.30.1",
+    "karma": "^3.0.0",
+    "karma-chrome-launcher": "~0.1.7",
+    "karma-mocha": "~0.1.10",
+    "mocha": "^4.0.1",
+    "mocha-junit-reporter": "~1.17.0",
+    "mocha-lcov-reporter": "0.0.2",
+    "nock": "~9.0.13",
+    "nyc": "^13.0.1",
+    "q": "1.1.2",
+    "request": "^2.88.0",
+    "request-promise": "~4.2.2",
+    "should": "11.2.x",
+    "should-http": "^0.1.1",
+    "should-sinon": "^0.0.6",
+    "sinon": "^6.1.6",
+    "sjcl": "~1.0.7",
+    "supertest": "~3.0.0",
+    "supertest-as-promised": "https://github.com/BitGo/supertest-as-promised/archive/a7f4b612b9fa090ae33a9616c41862aec2b25c7e.tar.gz",
+    "uglify-js": "3.0.15",
+    "uglifyjs-webpack-plugin": "^1.0.1",
+    "utf-8-validate": "~4.0.2",
+    "webpack": "^3.8.1"
+  },
   "optionalDependencies": {
     "ethereumjs-abi": "~0.6.2",
     "ethereumjs-tx": "^1.3.4",
     "ethereumjs-util": "~4.4.1",
-    "secp256k1": "3.2.5"
+    "secp256k1": "^3.5.0"
+  },
+  "testling": {
+    "browsers": [
+      "chrome/latest",
+      "firefox/latest",
+      "safari/latest",
+      "opera/latest",
+      "iphone/latest",
+      "ipad/latest",
+      "android-browser/4.2..latest"
+    ],
+    "harness": "mocha",
+    "files": [
+      "test/*.js",
+      "test/bitcoin/*.js"
+    ]
   }
 }

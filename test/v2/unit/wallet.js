@@ -66,7 +66,7 @@ describe('V2 Wallet:', function() {
     it('should pass filter parameters if they exist', co(function *() {
       const params = {
         limit: 1,
-        address: 'sendLabel',
+        address: ['address1', 'address2'],
         dateGte: 'dateString0',
         dateLt: 'dateString1',
         valueGte: 0,
@@ -74,7 +74,40 @@ describe('V2 Wallet:', function() {
       };
 
       // The actual api request will only send strings, but the SDK expects numbers for some values
-      const apiParams = _.mapValues(params, value => value.toString());
+      const apiParams = {
+        limit: '1',
+        address: ['address1', 'address2'],
+        dateGte: 'dateString0',
+        dateLt: 'dateString1',
+        valueGte: '0',
+        valueLt: '300000000'
+      };
+
+      const scope =
+        nock(bgUrl)
+        .get(`/api/v2/${wallet.coin()}/wallet/${wallet.id()}/transfer`)
+        .query(_.matches(apiParams))
+        .reply(200);
+
+      try {
+        yield wallet.transfers(params);
+      } catch (e) {
+        // test is successful if nock is consumed, HMAC errors expected
+      }
+
+      scope.isDone().should.be.True();
+    }));
+
+    it('should accept a string argument for address', co(function *() {
+      const params = {
+        limit: 1,
+        address: 'stringAddress'
+      };
+
+      const apiParams = {
+        limit: '1',
+        address: 'stringAddress'
+      };
 
       const scope =
         nock(bgUrl)
@@ -92,7 +125,9 @@ describe('V2 Wallet:', function() {
     }));
 
     it('should throw errors for invalid expected parameters', co(function *() {
-      (() => wallet.transfers({ address: 13375 })).should.throw('invalid address argument, expecting string');
+      (() => wallet.transfers({ address: 13375 })).should.throw('invalid address argument, expecting string or array');
+
+      (() => wallet.transfers({ address: [null] })).should.throw('invalid address argument, expecting array of address strings');
 
       (() => wallet.transfers({ dateGte: 20101904 })).should.throw('invalid dateGte argument, expecting string');
 

@@ -158,7 +158,7 @@ exports.tokens = {
         { type: 'btt', coin: 'eth', network: 'Mainnet', name: 'Blocktrade', tokenContractAddress: '0xfa456cf55250a839088b27ee32a424d7dacb54ff', decimalPlaces: 18 },
         { type: 'ukg', coin: 'eth', network: 'Mainnet', name: 'UnikoinGold', tokenContractAddress: '0x24692791bc444c5cd0b81e3cbcaba4b04acd1f3b', decimalPlaces: 18 },
         { type: 'tnt', coin: 'eth', network: 'Mainnet', name: 'Tierion', tokenContractAddress: '0x08f5a9235b08173b7569f83645d2c7fb55e8ccd8', decimalPlaces: 8 },
-        { type: 'bcap', coin: 'eth', network: 'Mainnet', name: 'BCAP', tokenContractAddress: '0xff3519eeeea3e76f1f699ccce5e23ee0bdda41ac', decimalPlaces: 0 },
+        { type: 'bcap', coin: 'eth', network: 'Mainnet', name: 'BCAP', tokenContractAddress: '0x1f41e42d0a9e3c0dd3ba15b527342783b43200a9', decimalPlaces: 0 },
         { type: 'cbc', coin: 'eth', network: 'Mainnet', name: 'CashBet Coin', tokenContractAddress: '0x26db5439f651caf491a87d48799da81f191bdb6b', decimalPlaces: 8 },
         { type: 'dai', coin: 'eth', network: 'Mainnet', name: 'Dai', tokenContractAddress: '0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359', decimalPlaces: 18 },
         { type: 'reb', coin: 'eth', network: 'Mainnet', name: 'Regblo', tokenContractAddress: '0x61383ac89988b498df5363050ff07fe5c52ecdda', decimalPlaces: 18 },
@@ -171,7 +171,29 @@ exports.tokens = {
         { type: 'npxs', coin: 'eth', network: 'Mainnet', name: 'Pundi X', tokenContractAddress: '0xa15c7ebe1f07caf6bff097d8a589fb8ac49ae5b3', decimalPlaces: 18 },
         { type: 'dgx', coin: 'eth', network: 'Mainnet', name: 'Digix', tokenContractAddress: '0x4f3afec4e5a3f2a6a1a411def7d7dfe50ee057bf', decimalPlaces: 9 },
         { type: 'gusd', coin: 'eth', network: 'Mainnet', name: 'Gemini Dollar', tokenContractAddress: '0x056fd409e1d7a124bd7017459dfea2f387b6d5cd', decimalPlaces: 2 },
-        { type: 'pax', coin: 'eth', network: 'Mainnet', name: 'Paxos', tokenContractAddress: '0x8e870d67f660d95d5be530380d0ec0bd388289e1', decimalPlaces: 18 }
+        { type: 'pax', coin: 'eth', network: 'Mainnet', name: 'Paxos', tokenContractAddress: '0x8e870d67f660d95d5be530380d0ec0bd388289e1', decimalPlaces: 18 },
+        { type: 'zco', coin: 'eth', network: 'Mainnet', name: 'Zebi Coin', tokenContractAddress: '0x2008e3057bd734e10ad13c9eae45ff132abc1722', decimalPlaces: 8 },
+        { type: 'incx', coin: 'eth', network: 'Mainnet', name: 'InternationalCryptoX', tokenContractAddress: '0xa984a92731c088f1ea4d53b71a2565a399f7d8d5', decimalPlaces: 18 },
+        { type: 'hyb', coin: 'eth', network: 'Mainnet', name: 'Hybrid Block', tokenContractAddress: '0x6059f55751603ead7dc6d280ad83a7b33d837c90', decimalPlaces: 18 },
+        { type: 'usdc', coin: 'eth', network: 'Mainnet', name: 'USD Coin', tokenContractAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', decimalPlaces: 6 },
+        { type: 'rby', coin: 'eth', network: 'Mainnet', name: 'Ruby X', tokenContractAddress: '0xf7705dee19a63e0bc1a240f723c5c0f570c78572', decimalPlaces: 18 },
+        { type: 'uqc', coin: 'eth', network: 'Mainnet', name: 'Uquid Coin', tokenContractAddress: '0xd01db73e047855efb414e6202098c4be4cd2423b', decimalPlaces: 18 },
+        { type: 'mft', coin: 'eth', network: 'Mainnet', name: 'Mainframe', tokenContractAddress: '0xdf2c7238198ad8b389666574f2d8bc411a4b7428', decimalPlaces: 18 },
+        { type: 'aoa', coin: 'eth', network: 'Mainnet', name: 'Aurora', tokenContractAddress: '0x9ab165d795019b6d8b3e971dda91071421305e5a', decimalPlaces: 18 },
+        { type: 'hot', coin: 'eth', network: 'Mainnet', name: 'Holo', tokenContractAddress: '0x6c6ee5e31d828de241282b9606c8e98ea48526e2', decimalPlaces: 18 },
+        { type: 'met', coin: 'eth', network: 'Mainnet', name: 'Metronome', tokenContractAddress: '0xa3d58c4e56fedcae3a7c43a725aee9a71f0ece4e', decimalPlaces: 18 },
+        { type: 'drv', coin: 'eth', network: 'Mainnet', name: 'Drive', tokenContractAddress: '0x0b9d89a71bdabd231d4d497b7b7b879740d739c4', decimalPlaces: 18 },
+        { type: 'mtcn', coin: 'eth', network: 'Mainnet', name: 'Multiven', tokenContractAddress: '0xf6117cc92d7247f605f11d4c942f0feda3399cb5', decimalPlaces: 18 },
+        { type: 'data', coin: 'eth', network: 'Mainnet', name: 'Streamr DATAcoin', tokenContractAddress: '0x0cf0ee63788a0849fe5297f3407f701e122cc023', decimalPlaces: 18 },
+        { type: 'medx', coin: 'eth', network: 'Mainnet', name: 'Medibloc', tokenContractAddress: '0xfd1e80508f243e64ce234ea88a5fd2827c71d4b7', decimalPlaces: 8 },
+        { type: 'box', coin: 'eth', network: 'Mainnet', name: 'ContentBox', tokenContractAddress: '0x63f584fa56e60e4d0fe8802b27c7e6e3b33e007f', decimalPlaces: 18 },
+        { type: 'mvl', coin: 'eth', network: 'Mainnet', name: 'Mass Vehicle Ledger', tokenContractAddress: '0xa849eaae994fb86afa73382e9bd88c2b6b18dc71', decimalPlaces: 18 },
+        { type: 'edr', coin: 'eth', network: 'Mainnet', name: 'Endor Protocol', tokenContractAddress: '0xc528c28fec0a90c083328bc45f587ee215760a0f', decimalPlaces: 18 },
+        { type: 'pma', coin: 'eth', network: 'Mainnet', name: 'PumaPay', tokenContractAddress: '0x846c66cf71c43f80403b51fe3906b3599d63336f', decimalPlaces: 18 },
+        { type: 'meta', coin: 'eth', network: 'Mainnet', name: 'Metadium', tokenContractAddress: '0xde2f7766c8bf14ca67193128535e5c7454f8387c', decimalPlaces: 18 },
+        { type: 'aergo', coin: 'eth', network: 'Mainnet', name: 'Aergo', tokenContractAddress: '0xae31b85bfe62747d0836b82608b4830361a3d37a', decimalPlaces: 18 },
+        { type: 'fxrt', coin: 'eth', network: 'Mainnet', name: 'FXRT', tokenContractAddress: '0x506742a24c54b77c5af4065b2626ab96c641f90e', decimalPlaces: 3 },
+        { type: 'bcio', coin: 'eth', network: 'Mainnet', name: 'Blockchain.io', tokenContractAddress: '0xcdc412f306e0c51e3249b88c65423cd16b322673', decimalPlaces: 18 }
       ]
     }
   },
@@ -180,7 +202,9 @@ exports.tokens = {
     eth: {
       tokens: [
         { type: 'terc', coin: 'teth', network: 'Kovan', tokenContractAddress: '0x945ac907cf021a6bcd07852bb3b8c087051706a9', decimalPlaces: 0, name: 'ERC Test Token' },
-        { type: 'tbst', coin: 'teth', network: 'Kovan', tokenContractAddress: '0xe5cdf77835ca2095881dd0803a77e844c87483cd', decimalPlaces: 0, name: 'Test BitGo Shield Token' }
+        { type: 'tbst', coin: 'teth', network: 'Kovan', tokenContractAddress: '0xe5cdf77835ca2095881dd0803a77e844c87483cd', decimalPlaces: 0, name: 'Test BitGo Shield Token' },
+        { type: 'schz', coin: 'teth', network: 'Kovan', tokenContractAddress: '0x050e25a2630b2aee94546589fd39785254de112c', decimalPlaces: 18, name: 'SchnauzerCoin' },
+        { type: 'tcat', coin: 'teth', network: 'Kovan', tokenContractAddress: '0x63137319f3a14a985eb31547370e0e3bd39b03b8', decimalPlaces: 18, name: 'Test CAT-20 Token' }
       ]
     }
   }
@@ -237,6 +261,11 @@ exports.krsProviders = {
     feeAddresses: {
       btc: '' // TODO [BG-6965] Get address from Keyternal - recovery will fail for now until Keyternal is ready
     }
+  },
+  bitgoKRSv2: {
+    feeType: 'flatUsd',
+    feeAmount: 0, // we will receive payments off-chain
+    supportedCoins: ['btc', 'eth']
   }
 };
 

@@ -8,6 +8,7 @@ const co = Promise.coroutine;
 const _ = require('lodash');
 const debug = require('debug')('bitgo:v2:wallet');
 const internal = require('./internal');
+const util = require('../util');
 
 const Wallet = function(bitgo, baseCoin, walletData) {
   this.bitgo = bitgo;
@@ -207,8 +208,15 @@ Wallet.prototype.transfers = function(params, callback) {
   }
 
   if (params.address) {
-    if (!_.isString(params.address)) {
-      throw new Error('invalid address argument, expecting string');
+    if (!_.isArray(params.address) && !_.isString(params.address)) {
+      throw new Error('invalid address argument, expecting string or array');
+    }
+    if (_.isArray(params.address)) {
+      params.address.forEach(address => {
+        if (!_.isString(address)) {
+          throw new Error('invalid address argument, expecting array of address strings');
+        }
+      });
     }
     query.address = params.address;
   }
@@ -308,7 +316,7 @@ Wallet.prototype.maximumSpendable = function maximumSpendable(params, callback) 
 Wallet.prototype.unspents = function(params, callback) {
   params = params || {};
 
-  const query = _.pick(params, ['prevId', 'limit', 'minValue', 'maxValue', 'minHeight', 'minConfirms', 'target', 'plainTarget', 'bech32']);
+  const query = _.pick(params, ['prevId', 'limit', 'minValue', 'maxValue', 'minHeight', 'minConfirms', 'target', 'segwit', 'chains']);
 
   return this.bitgo.get(this.url('/unspents'))
   .query(query)
@@ -339,8 +347,10 @@ Wallet.prototype.consolidateUnspents = function consolidateUnspents(params, call
     params = params || {};
     common.validateParams(params, [], ['walletPassphrase', 'xprv'], callback);
 
-    const keychain = yield this.baseCoin.keychains().get({ id: this._wallet.keys[0] });
+    const reqId = util.createRequestId();
+    const keychain = yield this.baseCoin.keychains().get({ id: this._wallet.keys[0], reqId });
     const filteredParams = _.pick(params, ['minValue', 'maxValue', 'minHeight', 'numUnspentsToMake', 'feeTxConfirmTarget', 'limit', 'minConfirms', 'enforceMinConfirmsForChange', 'feeRate', 'maxFeeRate', 'maxFeePercentage']);
+    this.bitgo._reqId = reqId;
     const response = yield this.bitgo.post(this.url('/consolidateUnspents'))
     .send(filteredParams)
     .result();
@@ -350,6 +360,7 @@ Wallet.prototype.consolidateUnspents = function consolidateUnspents(params, call
     const selectParams = _.pick(params, ['comment', 'otp']);
     const finalTxParams = _.extend({}, signedTransaction, selectParams);
 
+    this.bitgo._reqId = reqId;
     return this.bitgo.post(this.baseCoin.url('/wallet/' + this._wallet.id + '/tx/send'))
     .send(finalTxParams)
     .result();
@@ -381,16 +392,19 @@ Wallet.prototype.fanoutUnspents = function fanoutUnspents(params, callback) {
     common.validateParams(params, [], ['walletPassphrase', 'xprv'], callback);
 
     const filteredParams = _.pick(params, ['minValue', 'maxValue', 'minHeight', 'maxNumInputsToUse', 'numUnspentsToMake', 'minConfirms', 'enforceMinConfirmsForChange', 'feeRate', 'maxFeeRate', 'maxFeePercentage', 'feeTxConfirmTarget']);
+    const reqId = util.createRequestId();
+    this.bitgo._reqId = reqId;
     const response = yield this.bitgo.post(this.url('/fanoutUnspents'))
     .send(filteredParams)
     .result();
 
-    const keychain = yield this.baseCoin.keychains().get({ id: this._wallet.keys[0] });
+    const keychain = yield this.baseCoin.keychains().get({ id: this._wallet.keys[0], reqId });
     const transactionParams = _.extend({}, params, { txPrebuild: response, keychain: keychain, prv: params.xprv });
     const signedTransaction = yield this.signTransaction(transactionParams);
 
     const selectParams = _.pick(params, ['comment', 'otp']);
     const finalTxParams = _.extend({}, signedTransaction, selectParams);
+    this.bitgo._reqId = reqId;
     return this.bitgo.post(this.baseCoin.url('/wallet/' + this._wallet.id + '/tx/send'))
     .send(finalTxParams)
     .result();
@@ -453,18 +467,21 @@ Wallet.prototype.sweep = function sweep(params, callback) {
     }
     // the following flow works for all UTXO coins
 
+    const reqId = util.createRequestId();
     const filteredParams = _.pick(params, ['address', 'feeRate', 'maxFeeRate', 'feeTxConfirmTarget']);
+    this.bitgo._reqId = reqId;
     const response = yield this.bitgo.post(this.url('/sweepWallet'))
     .send(filteredParams)
     .result();
     // TODO: add txHex validation to protect man in the middle attacks replacing the txHex, BG-3588
 
-    const keychain = yield this.baseCoin.keychains().get({ id: this._wallet.keys[0] });
+    const keychain = yield this.baseCoin.keychains().get({ id: this._wallet.keys[0], reqId });
     const transactionParams = _.extend({}, params, { txPrebuild: response, keychain: keychain, prv: params.xprv });
     const signedTransaction = yield this.signTransaction(transactionParams);
 
     const selectParams = _.pick(params, ['otp']);
     const finalTxParams = _.extend({}, signedTransaction, selectParams);
+    this.bitgo._reqId = reqId;
     return this.bitgo.post(this.baseCoin.url('/wallet/' + this._wallet.id + '/tx/send'))
     .send(finalTxParams)
     .result();
@@ -553,13 +570,6 @@ Wallet.prototype.addresses = function(params, callback) {
     query.labelContains = params.labelContains;
   }
 
-  if (!_.isUndefined(params.p2sh)) {
-    if (!_.isBoolean(params.p2sh)) {
-      throw new Error('invalid p2sh argument, expecting boolean');
-    }
-    query.p2sh = params.p2sh;
-  }
-
   if (!_.isUndefined(params.segwit)) {
     if (!_.isBoolean(params.segwit)) {
       throw new Error('invalid segwit argument, expecting boolean');
@@ -567,11 +577,11 @@ Wallet.prototype.addresses = function(params, callback) {
     query.segwit = params.segwit;
   }
 
-  if (!_.isUndefined(params.bech32)) {
-    if (!_.isBoolean(params.bech32)) {
-      throw new Error('invalid bech32 argument, expecting boolean');
+  if (!_.isUndefined(params.chains)) {
+    if (!_.isArray(params.chains)) {
+      throw new Error('invalid chains argument, expecting array of numbers');
     }
-    query.bech32 = params.bech32;
+    query.chains = params.chains;
   }
 
   return this.bitgo.get(this.baseCoin.url('/wallet/' + this._wallet.id + '/addresses'))
@@ -621,6 +631,7 @@ Wallet.prototype.getAddress = function(params, callback) {
 Wallet.prototype.createAddress = function({ chain, gasPrice, count = 1, label, bech32, lowPriority } = {}, callback) {
   return co(function *createAddress() {
     const addressParams = {};
+    const reqId = util.createRequestId();
 
     if (!_.isUndefined(chain)) {
       if (!_.isInteger(chain)) {
@@ -666,9 +677,10 @@ Wallet.prototype.createAddress = function({ chain, gasPrice, count = 1, label, b
     }
 
     // get keychains for address verification
-    const keychains = yield Promise.map(this._wallet.keys, k => this.baseCoin.keychains().get({ id: k }));
+    const keychains = yield Promise.map(this._wallet.keys, k => this.baseCoin.keychains().get({ id: k, reqId }));
 
     const newAddresses = _.times(count, co(function *createAndVerifyAddress() {
+      this.bitgo._reqId = reqId;
       const newAddress = yield this.bitgo.post(this.baseCoin.url('/wallet/' + this._wallet.id + '/address'))
       .send(addressParams)
       .result();
@@ -980,10 +992,13 @@ Wallet.prototype.removeUser = function(params, callback) {
  * @param {Object} params
  * @param {{address: string, amount: string}} params.recipients - list of recipients and necessary recipient information
  * @param {Number} params.numBlocks - Estimates the approximate fee per kilobyte necessary for a transaction confirmation within numBlocks blocks
- * @param {Number} param.feeRate - the desired feeRate for the transaction in satoshis/kB
- * @param {Number} params.maxFeeRate - upper limit for feeRate in satoshis/kB
- * @param {Number} params.minValue - Ignore unspents smaller than this amount of satoshis
- * @param {Number} params.maxValue - Ignore unspents larger than this amount of satoshis
+ * @param {Number} params.feeRate - the desired feeRate for the transaction in base units/kB
+ * @param {Number} params.maxFeeRate - upper limit for feeRate in base units/kB
+ * @param {Number} params.minConfirms - Minimum number of confirmations unspents going into this transaction should have
+ * @param {Boolean} params.enforceMinConfirmsForChange - Enforce minimum number of confirmations on change (internal) inputs.
+ * @param {Number} params.targetWalletUnspents - The desired count of unspents in the wallet. If the wallet’s current unspent count is lower than the target, up to four additional change outputs will be added to the transaction.
+ * @param {Number} params.minValue - Ignore unspents smaller than this amount of base units
+ * @param {Number} params.maxValue - Ignore unspents larger than this amount of base units
  * @param {Number} params.sequenceId - The sequence ID of the transaction
  * @param {Number} params.lastLedgerSequence - Absolute max ledger the transaction should be accepted in, whereafter it will be rejected.
  * @param {String} params.ledgerSequenceDelta - Relative ledger height (in relation to the current ledger) that the transaction should be accepted in, whereafter it will be rejected.
@@ -993,6 +1008,7 @@ Wallet.prototype.removeUser = function(params, callback) {
  * @param {String} params.changeAddress - Specifies the destination of the change output
  * @param {Boolean} params.instant - Build this transaction to conform with instant sending coin-specific method (if available)
  * @param {{value: String, type: String}} params.memo - Memo to use in transaction (supported by Stellar)
+ * @param {String} params.addressType - The type of address to create for change. One of `p2sh`, `p2shP2wsh`, and `p2wsh`. Case-sensitive.
  * @param callback
  * @returns {*}
  */
@@ -1000,18 +1016,14 @@ Wallet.prototype.prebuildTransaction = function(params, callback) {
   return co(function *() {
     // Whitelist params to build tx (mostly around unspent selection)
     const whitelistedParams = _.pick(params, [
-      'recipients', 'numBlocks', 'feeRate', 'maxFeeRate', 'minConfirms',
-      'enforceMinConfirmsForChange', 'targetWalletUnspents',
-      'message', 'minValue', 'maxValue', 'sequenceId',
-      'lastLedgerSequence', 'ledgerSequenceDelta', 'gasPrice',
-      'noSplitChange', 'unspents', 'changeAddress', 'unspentTypes',
-      'changeAddressType', 'instant', 'memo'
+      'recipients', 'numBlocks', 'feeRate', 'maxFeeRate', 'minConfirms', 'enforceMinConfirmsForChange',
+      'targetWalletUnspents', 'message', 'minValue', 'maxValue', 'sequenceId', 'lastLedgerSequence',
+      'ledgerSequenceDelta', 'gasPrice', 'noSplitChange', 'unspents', 'changeAddress', 'instant', 'memo', 'addressType'
     ]);
 
-    if (_.isUndefined(whitelistedParams.unspentTypes)) {
-      whitelistedParams.unspentTypes = ['p2sh', 'p2sh-p2wsh', 'p2wsh'];
+    if (params.reqId) {
+      this.bitgo._reqId = params.reqId;
     }
-
     let response = yield this.bitgo.post(this.baseCoin.url('/wallet/' + this._wallet.id + '/tx/build'))
     .send(whitelistedParams)
     .result();
@@ -1090,7 +1102,7 @@ Wallet.prototype.prebuildAndSignTransaction = function(params, callback) {
 
     // the prebuild can be overridden by providing an explicit tx
     const txPrebuild = params.prebuildTx || (yield this.prebuildTransaction(params));
-    const userKeychain = yield this.baseCoin.keychains().get({ id: this._wallet.keys[0] });
+    const userKeychain = yield this.baseCoin.keychains().get({ id: this._wallet.keys[0], reqId: params.reqId });
 
     try {
       const verificationParams = _.pick(params.verification || {}, ['disableNetworking', 'keychains', 'addresses']);
@@ -1214,6 +1226,8 @@ Wallet.prototype.sendMany = function(params, callback) {
   return co(function *() {
     params = params || {};
     common.validateParams(params, [], ['comment', 'otp'], callback);
+    const reqId = util.createRequestId();
+    params.reqId = reqId;
     const coin = this.baseCoin;
     if (_.isObject(params.recipients)) {
       params.recipients.map(function(recipient) {
@@ -1239,6 +1253,7 @@ Wallet.prototype.sendMany = function(params, callback) {
       'instant', 'memo'
     ]);
     const finalTxParams = _.extend({}, halfSignedTransaction, selectParams);
+    this.bitgo._reqId = reqId;
     return this.bitgo.post(this.url('/tx/send'))
     .send(finalTxParams)
     .result();
